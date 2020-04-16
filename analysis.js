@@ -30,16 +30,16 @@ var builders = {};
 // Represent a reusable "class" following the Builder pattern.
 function FunctionBuilder()
 {
-	this.StartLine = 0;
-	this.FunctionName = "";
+	this.StartLine=0;
+	this.FunctionName="";
 	// The number of parameters for functions
-	this.ParameterCount  = 0,
+	this.ParameterCount=0,
 	// Number of if statements/loops + 1
-	this.SimpleCyclomaticComplexity = 0;
+	this.SimpleCyclomaticComplexity=0;
 	// The max depth of scopes (nested ifs, loops, etc)
-	this.MaxNestingDepth    = 0;
+	this.MaxNestingDepth=0;
 	// The max number of conditions if one decision statement.
-	this.MaxConditions      = 0;
+	this.MaxConditions=0;
 
 	this.report = function()
 	{
@@ -118,17 +118,47 @@ function complexity(filePath)
 		if (node.type === 'FunctionDeclaration') 
 		{
 			var builder = new FunctionBuilder();
+			var conditions=new Array();
 
 			builder.FunctionName = functionName(node);
 			builder.StartLine    = node.loc.start.line;
-
+			pCount=0;
+			for(x in node.params){
+				pCount++;
+			}
+			builder.ParameterCount=pCount;
+			SCC=1;
+			traverseWithParents(node, function(node){
+				if(isDecision(node)){
+					SCC++;
+					var temp=countConditions(node);
+					conditions.push(temp);
+				}
+			});
+			if(0<conditions.length){
+				builder.MaxConditions=Math.max.apply(Math,conditions);
+			}
+			builder.SimpleCyclomaticComplexity=SCC;
 			builders[builder.FunctionName] = builder;
 		}
-
+		if(node.type === 'Literal'){
+			fileBuilder.Strings++;
+		}
 	});
 
 }
-
+function countConditions(node){
+	var count =0;
+	traverseWithParents(node,function(node){
+		if((node.type==="LogicalExpression")&&((node.operator==="&&")||(node.operator==="||"))){
+			count++;
+		}
+	});
+	if(0<count){
+		count++;
+	}
+	return count;
+}
 // Helper function for counting children of node.
 function childrenLength(node)
 {
